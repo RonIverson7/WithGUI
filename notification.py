@@ -28,14 +28,12 @@ def consume_messages():
                 notification_message = f"Notification: {notification['message']} for Customer {notification['customer']}"
                 print(notification_message)
                 
-                root.after(0, show_popup, notification_message)
+                root.after(7000, show_popup, notification_message)
             else:
                 print("Invalid notification message")
         except Exception as e:
             print(f"Error in notification consumer: {e}")
 
-consumer_thread = threading.Thread(target=consume_messages)
-consumer_thread.daemon = True 
-consumer_thread.start()
+threading.Thread(target=consume_messages, daemon=True).start()
 
 root.mainloop()
