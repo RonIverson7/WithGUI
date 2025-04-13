@@ -52,7 +52,6 @@ def consume_messages():
         except Exception as e:
             print(f"Error in payment consumer: {e}")
 
-consumer_thread = threading.Thread(target=consume_messages, daemon=True)
-consumer_thread.start()
+threading.Thread(target=consume_messages, daemon=True).start()
 
 root.mainloop()
