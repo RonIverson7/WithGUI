@@ -31,7 +31,6 @@ def consume_messages():
         else:
             update_shipping_status(f"Cannot ship order for {order['customer']}, Book Title: {order['book']} (Status: {order['status']})")
 
-consumer_thread = threading.Thread(target=consume_messages, daemon=True)
-consumer_thread.start()
+threading.Thread(target=consume_messages, daemon=True).start()
 
 root.mainloop()
