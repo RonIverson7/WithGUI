@@ -2,6 +2,7 @@ import json
 from kafka import KafkaProducer, KafkaConsumer
 import tkinter as tk
 from tkinter import messagebox, ttk
+import threading
 
 KAFKA_BROKER = "localhost:9092"
 TOPIC_ORDERS = "book_orders"
@@ -41,8 +42,8 @@ notifications_page_frame = tk.Frame(notebook)
 
 notebook.add(main_page_frame, text="Main Page")
 notebook.add(inventory_page_frame, text="Inventory")
-notebook.add(history_page_frame, text="History")
 notebook.add(shipping_page_frame, text="Shipping")
+notebook.add(history_page_frame, text="History")
 notebook.add(notifications_page_frame, text="Notifications")
 
 inventory_label = tk.Label(inventory_page_frame, justify="left", anchor="nw")
@@ -65,6 +66,15 @@ def print_inventory():
 def update_inventory_display():
     inventory_label.config(text=print_inventory())
 
+def display_shipping():
+    if not shipped_orders:
+        shipping_label.config(text="No orders have been shipped yet.")
+    else:
+        shipping_label.config(text="\n".join(
+            [f"Shipped {i+1}: {o['customer']} | Book: {o['book']} | Quantity: {o['quantity']} | Payment: {o['payment_option']}"
+             for i, o in enumerate(shipped_orders)]
+        ))
+
 def display_history():
     if not order_history:
         history_label.config(text="No orders placed yet.")
@@ -75,16 +85,6 @@ def display_history():
         )
         history_label.config(text=history_content)
 
-def display_shipping():
-    if not shipped_orders:
-        shipping_label.config(text="No orders have been shipped yet.")
-    else:
-        shipping_label.config(text="\n".join(
-            [f"Shipped {i+1}: {o['customer']} | Book: {o['book']} | Quantity: {o['quantity']} | Payment: {o['payment_option']}"
-             for i, o in enumerate(shipped_orders)]
-        ))
-
-
 def display_notifications():
     if not order_history:
         notifications_label.config(text="No notifications yet.")
@@ -93,7 +93,6 @@ def display_notifications():
             [f"Notification: {o['message']} for Customer {o['customer']}" for o in order_history if 'message' in o]
         )
         notifications_label.config(text=notifications_content)
-
 
 def place_order(book_id_entry, quantity_entry, customer_entry, payment_option_var):
     try:
@@ -154,24 +153,29 @@ def show_place_order_form():
     for widget in main_page_frame.winfo_children():
         widget.destroy()
 
-    tk.Label(main_page_frame, text="Customer Name:").grid(row=0, column=0, sticky="e", padx=10, pady=5)
+    tk.Label(main_page_frame, text="Books Available", font=("Arial", 12, "bold")).grid(row=0, column=0, columnspan=2, pady=(10, 0))
+    books_text = "\n".join([f"{bid}. {info['name']}" for bid, info in inventory.items()])
+    tk.Label(main_page_frame, text=books_text, justify="left").grid(row=1, column=0, columnspan=2, pady=(0, 10))
+
+    # Form fields
+    tk.Label(main_page_frame, text="Customer Name:").grid(row=2, column=0, sticky="e", padx=10, pady=5)
     customer_entry = tk.Entry(main_page_frame)
-    customer_entry.grid(row=0, column=1, padx=10, pady=5)
+    customer_entry.grid(row=2, column=1, padx=10, pady=5)
 
-    tk.Label(main_page_frame, text="Book ID:").grid(row=1, column=0, sticky="e", padx=10, pady=5)
+    tk.Label(main_page_frame, text="Book ID:").grid(row=3, column=0, sticky="e", padx=10, pady=5)
     book_id_entry = tk.Entry(main_page_frame)
-    book_id_entry.grid(row=1, column=1, padx=10, pady=5)
+    book_id_entry.grid(row=3, column=1, padx=10, pady=5)
 
-    tk.Label(main_page_frame, text="Quantity:").grid(row=2, column=0, sticky="e", padx=10, pady=5)
+    tk.Label(main_page_frame, text="Quantity:").grid(row=4, column=0, sticky="e", padx=10, pady=5)
     quantity_entry = tk.Entry(main_page_frame)
-    quantity_entry.grid(row=2, column=1, padx=10, pady=5)
+    quantity_entry.grid(row=4, column=1, padx=10, pady=5)
 
-    tk.Label(main_page_frame, text="Payment Option:").grid(row=3, column=0, sticky="e", padx=10, pady=5)
+    tk.Label(main_page_frame, text="Payment Option:").grid(row=5, column=0, sticky="e", padx=10, pady=5)
     payment_option_var = tk.StringVar(value="Cash")
-    tk.OptionMenu(main_page_frame, payment_option_var, "Cash", "Card").grid(row=3, column=1, padx=10, pady=5)
+    tk.OptionMenu(main_page_frame, payment_option_var, "Cash", "Card").grid(row=5, column=1, padx=10, pady=5)
 
     tk.Button(main_page_frame, text="Place Order", command=lambda: place_order(
-        book_id_entry, quantity_entry, customer_entry, payment_option_var)).grid(row=4, column=0, columnspan=2, pady=10)
+        book_id_entry, quantity_entry, customer_entry, payment_option_var)).grid(row=6, column=0, columnspan=2, pady=10)
 
 def on_tab_change(event):
     selected = notebook.tab(notebook.select(), "text")
@@ -179,15 +183,14 @@ def on_tab_change(event):
         show_place_order_form()
     elif selected == "Inventory":
         update_inventory_display()
-    elif selected == "History":
-        display_history()
     elif selected == "Shipping":
         display_shipping()
+    elif selected == "History":
+        display_history()
     elif selected == "Notifications":
         display_notifications()
 
 notebook.bind("<<NotebookTabChanged>>", on_tab_change)
-
 show_place_order_form()
 
 def consume_notifications():
@@ -219,15 +222,14 @@ def consume_notifications():
                 messagebox.showinfo("Payment Status", payment_status)
 
             root.after(5000, delayed_popup)
-
             processed_orders.add(order["customer"])
 
         except Exception as e:
             print(f"Error in payment consumer: {e}")
 
-import threading
 thread = threading.Thread(target=consume_notifications)
 thread.daemon = True
 thread.start()
 
 root.mainloop()
+
