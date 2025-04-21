@@ -84,6 +84,7 @@ def display_shipping():
              for i, o in enumerate(shipped_orders)]
         ))
 
+
 def display_notifications():
     if not order_history:
         notifications_label.config(text="No notifications yet.")
@@ -93,10 +94,6 @@ def display_notifications():
         )
         notifications_label.config(text=notifications_content)
 
-def ship_order_auto(order):
-    if order not in shipped_orders:
-        shipped_orders.append(order)
-    display_shipping()
 
 def place_order(book_id_entry, quantity_entry, customer_entry, payment_option_var):
     try:
@@ -146,7 +143,7 @@ def place_order(book_id_entry, quantity_entry, customer_entry, payment_option_va
         messagebox.showinfo("Order Placed", "Order placed successfully")
 
         order_history.append(order_status)
-        ship_order_auto(order_status)
+        shipped_orders.append(order_status)
         update_inventory_display()
         display_history()
 
